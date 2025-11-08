@@ -78,7 +78,7 @@ class _BrowsePageState extends State<BrowsePage> {
                   title: Text(book.title),
                   subtitle: Text('by ${book.author}'),
                   trailing: Chip(
-                    label: Text(book.condition.toFirestoreString()),
+                    label: Text(book.condition.toString().split('.').last),
                     backgroundColor: AppTheme.accentColor.withOpacity(0.3),
                   ),
                   onTap: () {

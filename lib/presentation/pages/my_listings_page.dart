@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../providers/book_provider.dart';
-import '../providers/auth_provider.dart';
 import 'post_book_page.dart';
 
 class MyListingsPage extends StatelessWidget {
@@ -10,7 +9,6 @@ class MyListingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final userId = context.read<AuthProvider>().currentUser?.id;
 
     return Scaffold(
       appBar: AppBar(
