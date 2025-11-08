@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../core/theme.dart';
-import '../providers/auth_provider.dart';
 import 'browse_page.dart';
 import 'my_listings_page.dart';
 import 'chats_page.dart';
