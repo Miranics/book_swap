@@ -1,6 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:provider/provider.dart';
 import 'firebase_options.dart';
+import 'core/theme.dart';
+import 'data/repositories/auth_repository.dart';
+import 'data/repositories/book_repository.dart';
+import 'data/repositories/swap_repository.dart';
+import 'data/repositories/chat_repository.dart';
+import 'presentation/providers/auth_provider.dart';
+import 'presentation/providers/book_provider.dart';
+import 'presentation/providers/swap_provider.dart';
+import 'presentation/providers/chat_provider.dart';
+import 'presentation/pages/auth/login_page.dart';
+import 'presentation/pages/home_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
