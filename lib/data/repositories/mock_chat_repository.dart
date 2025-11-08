@@ -33,18 +33,11 @@ class MockChatRepository {
     await Future.delayed(const Duration(milliseconds: 400));
     
     // Check if thread already exists
-    final existing = _threads.firstWhere(
-      (t) => (t.userId1 == userId1 && t.userId2 == userId2) ||
-             (t.userId1 == userId2 && t.userId2 == userId1),
-      orElse: () => ChatThread(
-        id: '',
-        userId1: '',
-        userId2: '',
-      ),
-    );
-
-    if (existing.id.isNotEmpty) {
-      return existing.id;
+    for (final t in _threads) {
+      if ((t.userId1 == userId1 && t.userId2 == userId2) ||
+          (t.userId1 == userId2 && t.userId2 == userId1)) {
+        return t.id;
+      }
     }
 
     // Create new thread
@@ -56,6 +49,7 @@ class MockChatRepository {
       userId2: userId2,
       userId2Name: userId2Name,
       swapId: swapId,
+      createdAt: DateTime.now(),
       lastMessage: 'Chat started',
       lastMessageAt: DateTime.now(),
     );
@@ -75,9 +69,14 @@ class MockChatRepository {
       _messages[threadId] = [];
     }
 
-    final msgWithId = message.copyWith(
+    final msgWithId = ChatMessage(
       id: 'msg_${DateTime.now().millisecondsSinceEpoch}',
+      senderId: message.senderId,
+      senderName: message.senderName,
+      recipientId: message.recipientId,
+      message: message.message,
       timestamp: DateTime.now(),
+      isRead: message.isRead,
     );
 
     _messages[threadId]!.add(msgWithId);
@@ -85,7 +84,15 @@ class MockChatRepository {
     // Update thread's last message
     final threadIndex = _threads.indexWhere((t) => t.id == threadId);
     if (threadIndex != -1) {
-      _threads[threadIndex] = _threads[threadIndex].copyWith(
+      final oldThread = _threads[threadIndex];
+      _threads[threadIndex] = ChatThread(
+        id: oldThread.id,
+        userId1: oldThread.userId1,
+        userId1Name: oldThread.userId1Name,
+        userId2: oldThread.userId2,
+        userId2Name: oldThread.userId2Name,
+        swapId: oldThread.swapId,
+        createdAt: oldThread.createdAt,
         lastMessage: message.message,
         lastMessageAt: DateTime.now(),
       );
