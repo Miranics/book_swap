@@ -89,19 +89,41 @@ class _PostBookPageState extends State<PostBookPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.bookToEdit != null ? 'Edit Book' : 'Post a Book'),
+        elevation: 0,
+        backgroundColor: AppTheme.primaryColor,
+        foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // Book Title
+              Text(
+                'Book Title',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryColor,
+                ),
+              ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _titleController,
                 decoration: InputDecoration(
-                  labelText: 'Book Title',
-                  prefixIcon: const Icon(Icons.menu_book),
+                  hintText: 'Enter book title',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -110,12 +132,31 @@ class _PostBookPageState extends State<PostBookPage> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
+              // Author
+              Text(
+                'Author',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryColor,
+                ),
+              ),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _authorController,
                 decoration: InputDecoration(
-                  labelText: 'Author',
-                  prefixIcon: const Icon(Icons.person),
+                  hintText: 'Enter author name',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -124,29 +165,85 @@ class _PostBookPageState extends State<PostBookPage> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<BookCondition>(
-                value: _selectedCondition,
-                decoration: InputDecoration(
-                  labelText: 'Condition',
-                  prefixIcon: const Icon(Icons.info),
+              const SizedBox(height: 20),
+              // Swap For
+              Text(
+                'Swap For',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryColor,
                 ),
-                items: BookCondition.values
-                    .map((condition) => DropdownMenuItem(
-                          value: condition,
-                          child: Text(condition.toString().split('.').last),
-                        ))
-                    .toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() => _selectedCondition = value);
-                  }
-                },
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 8),
+              TextFormField(
+                decoration: InputDecoration(
+                  hintText: 'What book do you want in exchange?',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade300),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Condition
+              Text(
+                'Condition',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryColor,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                children: BookCondition.values.map((condition) {
+                  final isSelected = _selectedCondition == condition;
+                  final conditionName = condition.toString().split('.').last;
+                  return FilterChip(
+                    label: Text(conditionName),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      setState(() => _selectedCondition = condition);
+                    },
+                    backgroundColor: Colors.white,
+                    selectedColor: AppTheme.accentColor.withValues(alpha: 0.3),
+                    labelStyle: TextStyle(
+                      color: isSelected ? AppTheme.accentColor : AppTheme.primaryColor,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                    side: BorderSide(
+                      color: isSelected ? AppTheme.accentColor : Colors.grey.shade300,
+                      width: isSelected ? 2 : 1,
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 40),
+              // Post Button
               ElevatedButton(
                 onPressed: _handleSubmit,
-                child: Text(widget.bookToEdit != null ? 'Update Book' : 'Post Book'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.accentColor,
+                  foregroundColor: AppTheme.primaryColor,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  widget.bookToEdit != null ? 'Update Book' : 'Post',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),

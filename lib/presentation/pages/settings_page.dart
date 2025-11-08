@@ -21,31 +21,30 @@ class _SettingsPageState extends State<SettingsPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
+        elevation: 0,
+        backgroundColor: AppTheme.primaryColor,
+        foregroundColor: Colors.white,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // Profile Section
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Profile Header
+            Container(
+              color: AppTheme.primaryColor,
+              padding: const EdgeInsets.all(24),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    'Profile',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 16),
                   CircleAvatar(
-                    radius: 40,
+                    radius: 50,
                     backgroundColor: AppTheme.accentColor,
                     child: Text(
                       currentUser?.displayName?.isNotEmpty == true
                           ? currentUser!.displayName![0].toUpperCase()
                           : 'U',
                       style: const TextStyle(
-                        fontSize: 24,
+                        fontSize: 32,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.primaryColor,
                       ),
@@ -53,119 +52,167 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Name: ${currentUser?.displayName ?? 'Unknown'}',
-                    style: Theme.of(context).textTheme.bodyMedium,
+                    currentUser?.displayName ?? 'User',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Email: ${currentUser?.email ?? 'N/A'}',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Email Verified: ${currentUser?.emailVerified == true ? 'Yes' : 'No'}',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: currentUser?.emailVerified == true
-                          ? AppTheme.successColor
-                          : AppTheme.warningColor,
+                    currentUser?.email ?? 'N/A',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.lightTextColor,
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-          const SizedBox(height: 24),
 
-          // Notifications Section
-          Card(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                  child: Text(
+            // Settings List
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Notifications Section
+                  Text(
                     'Notifications',
-                    style: Theme.of(context).textTheme.titleMedium,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryColor,
+                    ),
                   ),
-                ),
-                SwitchListTile(
-                  title: const Text('Notification Reminders'),
-                  value: _notificationsEnabled,
-                  onChanged: (value) {
-                    setState(() => _notificationsEnabled = value);
-                  },
-                ),
-                SwitchListTile(
-                  title: const Text('Email Updates'),
-                  value: _emailUpdatesEnabled,
-                  onChanged: (value) {
-                    setState(() => _emailUpdatesEnabled = value);
-                  },
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Actions Section
-          Card(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(Icons.help),
-                  title: const Text('About'),
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('About BookSwap'),
-                        content: const Text(
-                          'BookSwap v1.0\n\nA marketplace app for students to exchange textbooks.',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('OK'),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-                const Divider(height: 0),
-                ListTile(
-                  leading: const Icon(Icons.logout, color: AppTheme.errorColor),
-                  title: const Text(
-                    'Logout',
-                    style: TextStyle(color: AppTheme.errorColor),
-                  ),
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Logout'),
-                        content: const Text('Are you sure you want to logout?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Cancel'),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              context.read<AuthProvider>().logout();
-                              Navigator.pop(context);
+                  const SizedBox(height: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: Colors.grey.shade200),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        ListTile(
+                          title: const Text('Notification reminders'),
+                          trailing: Switch(
+                            value: _notificationsEnabled,
+                            onChanged: (value) {
+                              setState(() => _notificationsEnabled = value);
                             },
-                            child: const Text('Logout'),
+                            activeColor: AppTheme.accentColor,
                           ),
-                        ],
+                        ),
+                        Divider(height: 1, color: Colors.grey.shade200),
+                        ListTile(
+                          title: const Text('Email Updates'),
+                          trailing: Switch(
+                            value: _emailUpdatesEnabled,
+                            onChanged: (value) {
+                              setState(() => _emailUpdatesEnabled = value);
+                            },
+                            activeColor: AppTheme.accentColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // Other Section
+                  Text(
+                    'Other',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: Colors.grey.shade200),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        ListTile(
+                          title: const Text('About'),
+                          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('About BookSwap'),
+                                content: const Text(
+                                  'BookSwap v1.0\n\nA marketplace app for students to exchange textbooks.',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('OK'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // Logout Button
+                  ElevatedButton(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Logout'),
+                          content: const Text('Are you sure you want to logout?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                context.read<AuthProvider>().logout();
+                                Navigator.pop(context);
+                              },
+                              child: const Text(
+                                'Logout',
+                                style: TextStyle(color: AppTheme.errorColor),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.errorColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    );
-                  },
-                ),
-              ],
+                    ),
+                    child: const Text(
+                      'Logout',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
