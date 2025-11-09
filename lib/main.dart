@@ -38,7 +38,7 @@ Future<void> _loadEnvironment() async {
   try {
     await dotenv.load(fileName: ".env");
   } catch (e) {
-    print('Environment file load error: $e');
+    throw Exception('Environment file load error: $e');
   }
 }
 
