@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme.dart';
+import '../../pages/home_page.dart';
 import '../../providers/auth_provider.dart';
 import 'signup_page.dart';
 
@@ -33,10 +34,17 @@ class _LoginPageState extends State<LoginPage> {
         );
 
         if (!mounted) return;
+
+  // Refresh the provider with the latest Firestore profile
+  await context.read<AuthProvider>().checkAuthStatus();
         
         // Success - navigate to home
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Login successful!')),
+        );
+
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const HomePage()),
         );
       } catch (e) {
         if (!mounted) return;
