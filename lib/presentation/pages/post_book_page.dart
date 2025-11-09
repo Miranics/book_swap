@@ -1,5 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/theme.dart';
 import '../../domain/models/book_model.dart';
 import '../providers/auth_provider.dart';
@@ -19,6 +23,10 @@ class _PostBookPageState extends State<PostBookPage> {
   late TextEditingController _authorController;
   late BookCondition _selectedCondition;
   final _formKey = GlobalKey<FormState>();
+  final ImagePicker _picker = ImagePicker();
+  XFile? _selectedImage;
+  Uint8List? _imagePreviewBytes;
+  bool _isUploadingImage = false;
 
   @override
   void initState() {
@@ -47,12 +55,27 @@ class _PostBookPageState extends State<PostBookPage> {
         final currentUser = context.read<AuthProvider>().currentUser;
         if (currentUser == null) return;
 
+        String? coverUrl = widget.bookToEdit?.coverImageUrl;
+
+        if (_selectedImage != null) {
+          setState(() => _isUploadingImage = true);
+          coverUrl = await context.read<BookProvider>().uploadBookCover(
+                file: _selectedImage!,
+                userId: currentUser.id,
+              );
+          if (mounted) {
+            setState(() => _isUploadingImage = false);
+          } else {
+            return;
+          }
+        }
+
         final book = BookModel(
           id: widget.bookToEdit?.id ?? '',
           title: _titleController.text,
           author: _authorController.text,
           condition: _selectedCondition,
-          coverImageUrl: widget.bookToEdit?.coverImageUrl,
+          coverImageUrl: coverUrl,
           userId: currentUser.id,
           userName: currentUser.displayName ?? 'Unknown',
           createdAt: widget.bookToEdit?.createdAt ?? DateTime.now(),
@@ -80,8 +103,22 @@ class _PostBookPageState extends State<PostBookPage> {
             backgroundColor: AppTheme.errorColor,
           ),
         );
+        if (mounted) {
+          setState(() => _isUploadingImage = false);
+        }
       }
     }
+  }
+
+  Future<void> _pickImage() async {
+    final XFile? file = await _picker.pickImage(source: ImageSource.gallery);
+    if (file == null) return;
+
+    final Uint8List bytes = await file.readAsBytes();
+    setState(() {
+      _selectedImage = file;
+      _imagePreviewBytes = bytes;
+    });
   }
 
   @override
@@ -131,6 +168,58 @@ class _PostBookPageState extends State<PostBookPage> {
                   }
                   return null;
                 },
+              ),
+              const SizedBox(height: 20),
+              // Cover Image
+              Text(
+                'Cover Image',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryColor,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: _isUploadingImage ? null : _pickImage,
+                child: Container(
+                  height: 160,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Center(
+                    child: _isUploadingImage
+                        ? const CircularProgressIndicator()
+                        : _imagePreviewBytes != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.memory(
+                                  _imagePreviewBytes!,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                ),
+                              )
+                            : widget.bookToEdit?.coverImageUrl != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Image.network(
+                                      widget.bookToEdit!.coverImageUrl!,
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                    ),
+                                  )
+                                : Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: const [
+                                      Icon(Icons.photo_camera,
+                                          color: Colors.grey, size: 32),
+                                      SizedBox(height: 8),
+                                      Text('Tap to upload cover photo'),
+                                    ],
+                                  ),
+                  ),
+                ),
               ),
               const SizedBox(height: 20),
               // Author

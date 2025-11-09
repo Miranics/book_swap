@@ -103,7 +103,7 @@ If you have a Google Cloud project with Firebase enabled:
 3. Enable these services:
    - **Authentication** → Email/Password
    - **Firestore Database** → Production mode
-   - **Storage** → Upload books photos
+  - **(Optional) Storage** → Only required if you prefer Firebase Storage instead of Supabase
 
 4. Run configuration:
    ```bash
@@ -136,6 +136,19 @@ flutter build appbundle --release
 ```
 
 APK location: `build/app/outputs/apk/release/app-release.apk`
+
+### 3b. Supabase Storage Setup (Used for book cover uploads)
+
+1. Sign in to [Supabase](https://supabase.com) and create a project (US-East region keeps latency low for Firebase).
+2. In the Supabase dashboard, open **Project Settings → API** and copy the **Project URL** and **anon public key**.
+3. Open **Storage → Buckets**, create a bucket named `book-covers`, and set it to **public** so the app can display images without signed URLs.
+4. Rename `.env.example` to `.env` and fill in:
+   ```env
+   SUPABASE_URL=your-project-url
+   SUPABASE_ANON_KEY=your-anon-key
+   SUPABASE_BUCKET=book-covers
+   ```
+5. Run `flutter pub get` to ensure Supabase packages are installed before launching the app.
 
 ### 5. Run on Device
 

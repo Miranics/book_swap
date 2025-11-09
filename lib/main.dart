@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'firebase_options.dart';
 import 'core/theme.dart';
 import 'data/repositories/auth_repository.dart';
@@ -13,19 +16,41 @@ import 'presentation/providers/swap_provider.dart';
 import 'presentation/providers/chat_provider.dart';
 import 'presentation/pages/auth/login_page.dart';
 import 'presentation/pages/home_page.dart';
+import 'services/storage_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await _loadEnvironment();
   
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    await _initializeSupabase();
   } catch (e) {
-    print('Firebase initialization error: $e');
+    print('Initialization error: $e');
   }
   
   runApp(const MyApp());
+}
+
+Future<void> _loadEnvironment() async {
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    print('Environment file load error: $e');
+  }
+}
+
+Future<void> _initializeSupabase() async {
+  final String? supabaseUrl = dotenv.env['SUPABASE_URL'];
+  final String? supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'];
+
+  if (supabaseUrl == null || supabaseAnonKey == null) {
+    throw Exception('Supabase credentials missing. Check your .env file.');
+  }
+
+  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
 }
 
 class MyApp extends StatelessWidget {
@@ -33,6 +58,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String storageBucketName =
+        dotenv.env['SUPABASE_BUCKET'] ?? 'book-covers';
+
     return MultiProvider(
       providers: [
         // Repositories
@@ -40,13 +68,22 @@ class MyApp extends StatelessWidget {
         Provider<BookRepository>(create: (_) => BookRepository()),
         Provider<SwapRepository>(create: (_) => SwapRepository()),
         Provider<ChatRepository>(create: (_) => ChatRepository()),
+        Provider<StorageService>(
+          create: (_) => StorageService(
+            client: Supabase.instance.client,
+            bucketName: storageBucketName,
+          ),
+        ),
 
         // Providers
         ChangeNotifierProvider<AuthProvider>(
           create: (context) => AuthProvider(context.read<AuthRepository>()),
         ),
         ChangeNotifierProvider<BookProvider>(
-          create: (context) => BookProvider(context.read<BookRepository>()),
+          create: (context) => BookProvider(
+            context.read<BookRepository>(),
+            context.read<StorageService>(),
+          ),
         ),
         ChangeNotifierProvider<SwapProvider>(
           create: (context) => SwapProvider(context.read<SwapRepository>()),

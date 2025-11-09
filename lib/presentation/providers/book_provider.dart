@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
 import '../../data/repositories/book_repository.dart';
 import '../../domain/models/book_model.dart';
+import '../../services/storage_service.dart';
 
 class BookProvider extends ChangeNotifier {
   final BookRepository _bookRepository;
+  final StorageService _storageService;
 
   List<BookModel> _allBooks = [];
   List<BookModel> _userBooks = [];
@@ -11,7 +15,7 @@ class BookProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
-  BookProvider(this._bookRepository);
+  BookProvider(this._bookRepository, this._storageService);
 
   List<BookModel> get allBooks => _allBooks;
   List<BookModel> get userBooks => _userBooks;
@@ -49,6 +53,22 @@ class BookProvider extends ChangeNotifier {
     } catch (e) {
       _error = e.toString();
       _isLoading = false;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<String> uploadBookCover({
+    required XFile file,
+    required String userId,
+  }) async {
+    try {
+      return await _storageService.uploadBookCover(
+        file: file,
+        userId: userId,
+      );
+    } catch (e) {
+      _error = e.toString();
       notifyListeners();
       rethrow;
     }
