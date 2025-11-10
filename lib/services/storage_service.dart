@@ -16,9 +16,40 @@ class StorageService {
     required XFile file,
     required String userId,
   }) async {
+    return _uploadImage(
+      file: file,
+      userId: userId,
+      folder: 'book_covers',
+      filenamePrefix: 'cover',
+    );
+  }
+
+  Future<String> uploadProfileImage({
+    required XFile file,
+    required String userId,
+  }) async {
+    return _uploadImage(
+      file: file,
+      userId: userId,
+      folder: 'profile_images',
+      filenamePrefix: 'avatar',
+    );
+  }
+
+  Future<String> _uploadImage({
+    required XFile file,
+    required String userId,
+    required String folder,
+    required String filenamePrefix,
+  }) async {
     final Uint8List bytes = await file.readAsBytes();
     final String extension = _resolveExtension(file);
-    final String objectPath = _buildObjectPath(userId, extension);
+    final String objectPath = _buildObjectPath(
+      folder: folder,
+      userId: userId,
+      filenamePrefix: filenamePrefix,
+      extension: extension,
+    );
 
     await _client.storage.from(_bucketName).uploadBinary(
           objectPath,
@@ -32,9 +63,14 @@ class StorageService {
     return _client.storage.from(_bucketName).getPublicUrl(objectPath);
   }
 
-  String _buildObjectPath(String userId, String extension) {
+  String _buildObjectPath({
+    required String folder,
+    required String userId,
+    required String filenamePrefix,
+    required String extension,
+  }) {
     final int timestamp = DateTime.now().millisecondsSinceEpoch;
-    return 'book_covers/$userId/cover_$timestamp.$extension';
+    return '$folder/$userId/${filenamePrefix}_$timestamp.$extension';
   }
 
   String _resolveExtension(XFile file) {
