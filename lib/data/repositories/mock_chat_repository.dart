@@ -51,6 +51,10 @@ class MockChatRepository {
       userId2Name: userId2Name,
       threadKey: threadKey,
       participants: [userId1, userId2],
+      unreadCounts: {
+        userId1: 0,
+        userId2: 0,
+      },
       swapId: swapId,
       createdAt: now,
       lastMessage: 'Chat started',
@@ -96,6 +100,12 @@ class MockChatRepository {
         userId2Name: oldThread.userId2Name,
         threadKey: oldThread.threadKey,
         participants: oldThread.participants,
+        unreadCounts: {
+          ...oldThread.unreadCounts,
+          message.senderId: 0,
+          message.recipientId:
+              (oldThread.unreadCounts[message.recipientId] ?? 0) + 1,
+        },
         swapId: oldThread.swapId,
         createdAt: oldThread.createdAt,
         lastMessage: message.message,
@@ -108,5 +118,31 @@ class MockChatRepository {
     await Future.delayed(const Duration(milliseconds: 300));
     _threads.removeWhere((t) => t.id == threadId);
     _messages.remove(threadId);
+  }
+
+  Future<void> markThreadAsRead({
+    required String threadId,
+    required String userId,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    final index = _threads.indexWhere((t) => t.id == threadId);
+    if (index != -1) {
+      final thread = _threads[index];
+      _threads[index] = thread.copyWith(
+        unreadCounts: {
+          ...thread.unreadCounts,
+          userId: 0,
+        },
+      );
+    }
+
+    final messageList = _messages[threadId];
+    if (messageList != null) {
+      _messages[threadId] = messageList
+          .map((msg) => msg.recipientId == userId && !msg.isRead
+              ? msg.copyWith(isRead: true)
+              : msg)
+          .toList();
+    }
   }
 }

@@ -90,6 +90,39 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> markThreadAsRead({
+    required String threadId,
+    required String userId,
+  }) async {
+    try {
+      await _chatRepository.markThreadAsRead(threadId: threadId, userId: userId);
+
+      final threadIndex = _chatThreads.indexWhere((thread) => thread.id == threadId);
+      if (threadIndex != -1) {
+        final currentThread = _chatThreads[threadIndex];
+        final updatedThread = currentThread.copyWith(
+          unreadCounts: {
+            ...currentThread.unreadCounts,
+            userId: 0,
+          },
+        );
+        _chatThreads[threadIndex] = updatedThread;
+      }
+
+      _messages = _messages
+          .map((chatMessage) => chatMessage.recipientId == userId && !chatMessage.isRead
+              ? chatMessage.copyWith(isRead: true)
+              : chatMessage)
+          .toList();
+
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      rethrow;
+    }
+  }
+
   void clearError() {
     _error = null;
     notifyListeners();

@@ -195,6 +195,9 @@ class _ChatThreadCard extends StatelessWidget {
     final timeLabel = thread.lastMessageAt != null
         ? _SentSwapCard._timeAgo(thread.lastMessageAt!)
         : 'Just now';
+    final unreadCount = currentUserId != null
+        ? thread.unreadCounts[currentUserId!] ?? 0
+        : 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -218,16 +221,41 @@ class _ChatThreadCard extends StatelessWidget {
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: AppTheme.accentColor.withValues(alpha: 0.2),
-                  child: Text(
-                    otherName.isNotEmpty ? otherName[0].toUpperCase() : '?',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.accentColor,
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    CircleAvatar(
+                      radius: 28,
+                      backgroundColor: AppTheme.accentColor.withValues(alpha: 0.2),
+                      child: Text(
+                        otherName.isNotEmpty ? otherName[0].toUpperCase() : '?',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.accentColor,
+                        ),
+                      ),
                     ),
-                  ),
+                    if (unreadCount > 0)
+                      Positioned(
+                        right: -2,
+                        top: -2,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppTheme.errorColor,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            unreadCount > 99 ? '99+' : unreadCount.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -267,6 +295,17 @@ class _ChatThreadCard extends StatelessWidget {
                             .bodySmall
                             ?.copyWith(color: AppTheme.lightTextColor),
                       ),
+                      if (unreadCount > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Text(
+                            '$unreadCount unread message${unreadCount == 1 ? '' : 's'}',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(color: AppTheme.errorColor),
+                          ),
+                        ),
                     ],
                   ),
                 ),

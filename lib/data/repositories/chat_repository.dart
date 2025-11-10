@@ -43,6 +43,10 @@ class ChatRepository {
         userId2Name: userId2Name,
         threadKey: threadKey,
         participants: [userId1, userId2],
+        unreadCounts: {
+          userId1: 0,
+          userId2: 0,
+        },
         swapId: swapId,
         createdAt: now,
         lastMessage: 'Chat started',
@@ -76,6 +80,8 @@ class ChatRepository {
       await _firestore.collection('chatThreads').doc(threadId).update({
         'lastMessage': message.message,
         'lastMessageAt': DateTime.now().toIso8601String(),
+        'unreadCounts.${message.senderId}': 0,
+        'unreadCounts.${message.recipientId}': FieldValue.increment(1),
       });
     } catch (e) {
       rethrow;
@@ -118,6 +124,34 @@ class ChatRepository {
         return ChatThread.fromMap(doc.data()!, doc.id);
       }
       return null;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  Future<void> markThreadAsRead({
+    required String threadId,
+    required String userId,
+  }) async {
+    try {
+      final threadRef = _firestore.collection('chatThreads').doc(threadId);
+
+      final querySnapshot = await threadRef
+          .collection('messages')
+          .where('recipientId', isEqualTo: userId)
+          .where('isRead', isEqualTo: false)
+          .get();
+
+      final batch = _firestore.batch();
+      for (final doc in querySnapshot.docs) {
+        batch.update(doc.reference, {'isRead': true});
+      }
+
+      batch.update(threadRef, {
+        'unreadCounts.$userId': 0,
+      });
+
+      await batch.commit();
     } catch (e) {
       rethrow;
     }

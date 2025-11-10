@@ -40,8 +40,26 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     final chatProvider = context.watch<ChatProvider>();
     final currentUser = context.watch<AuthProvider>().currentUser;
 
+    final thread = chatProvider.chatThreads.firstWhere(
+      (t) => t.id == widget.thread.id,
+      orElse: () => widget.thread,
+    );
+
     final messages = chatProvider.messages;
-    final otherUserName = _otherParticipantName(currentUser?.id);
+    final otherUserName = _otherParticipantName(thread, currentUser?.id);
+
+    final unreadCount = currentUser != null
+        ? thread.unreadCounts[currentUser.id] ?? 0
+        : 0;
+
+    if (currentUser != null && unreadCount > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        context
+            .read<ChatProvider>()
+            .markThreadAsRead(threadId: thread.id, userId: currentUser.id);
+      });
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -119,26 +137,31 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
           ),
           _ChatComposer(
             controller: _messageController,
-            onSend: (value) => _handleSend(context, value, currentUser),
+            onSend: (value) => _handleSend(context, value, currentUser, thread),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _handleSend(BuildContext context, String message, UserModel? currentUser) async {
+  Future<void> _handleSend(
+    BuildContext context,
+    String message,
+    UserModel? currentUser,
+    ChatThread thread,
+  ) async {
     final trimmed = message.trim();
     if (trimmed.isEmpty || currentUser == null) {
       return;
     }
 
     final chatProvider = context.read<ChatProvider>();
-    final recipientId = currentUser.id == widget.thread.userId1
-        ? widget.thread.userId2
-        : widget.thread.userId1;
+    final recipientId = currentUser.id == thread.userId1
+        ? thread.userId2
+        : thread.userId1;
     try {
       await chatProvider.sendMessage(
-        threadId: widget.thread.id,
+        threadId: thread.id,
         message: ChatMessage(
           id: '',
           senderId: currentUser.id,
@@ -150,6 +173,10 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
         ),
       );
       _messageController.clear();
+      await chatProvider.markThreadAsRead(
+        threadId: thread.id,
+        userId: currentUser.id,
+      );
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -158,11 +185,11 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     }
   }
 
-  String _otherParticipantName(String? currentUserId) {
-    if (currentUserId == widget.thread.userId1) {
-      return widget.thread.userId2Name;
+  String _otherParticipantName(ChatThread thread, String? currentUserId) {
+    if (currentUserId == thread.userId1) {
+      return thread.userId2Name;
     }
-    return widget.thread.userId1Name;
+    return thread.userId1Name;
   }
 
   static String _formatTimestamp(DateTime timestamp) {
