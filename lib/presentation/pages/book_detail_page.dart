@@ -18,6 +18,37 @@ class BookDetailPage extends StatelessWidget {
     final isOwner = currentUser?.id == book.userId;
     final swapProvider = context.watch<SwapProvider>();
 
+    SwapModel? latestSwapForBook;
+    if (!isOwner && currentUser != null) {
+      final matches = swapProvider.userSwaps
+          .where((swap) =>
+              swap.bookId == book.id && swap.senderUserId == currentUser.id)
+          .toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      if (matches.isNotEmpty) {
+        latestSwapForBook = matches.first;
+      }
+    }
+
+    final bool isPending = latestSwapForBook?.status == SwapStatus.pending;
+    final bool isAccepted = latestSwapForBook?.status == SwapStatus.accepted;
+    final bool isCompleted = latestSwapForBook?.status == SwapStatus.completed;
+    final bool disableSwapButton =
+        isOwner || swapProvider.isLoading || isPending || isAccepted || isCompleted;
+
+    String actionLabel;
+    if (isOwner) {
+      actionLabel = 'This Is Your Book';
+    } else if (isPending) {
+      actionLabel = 'Pending Approval';
+    } else if (isAccepted) {
+      actionLabel = 'Swap Accepted';
+    } else if (isCompleted) {
+      actionLabel = 'Swap Completed';
+    } else {
+      actionLabel = 'Request Swap';
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Book Details'),
@@ -108,6 +139,43 @@ class BookDetailPage extends StatelessWidget {
                   ),
                 ),
               ),
+            if (!isOwner && latestSwapForBook != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 24),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: _statusHighlightColor(latestSwapForBook.status),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        _statusIcon(latestSwapForBook.status),
+                        color: _statusForegroundColor(latestSwapForBook.status),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _statusMessage(
+                            latestSwapForBook.status,
+                            bookOwnerName: book.userName,
+                          ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(
+                                color: _statusForegroundColor(
+                                  latestSwapForBook.status,
+                                ),
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -116,7 +184,7 @@ class BookDetailPage extends StatelessWidget {
         child: SizedBox(
           height: 52,
           child: ElevatedButton(
-            onPressed: isOwner || swapProvider.isLoading
+            onPressed: disableSwapButton
                 ? null
                 : () => _handleSwapRequest(context),
             style: ElevatedButton.styleFrom(
@@ -132,7 +200,7 @@ class BookDetailPage extends StatelessWidget {
                     height: 22,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : Text(isOwner ? 'This Is Your Book' : 'Request Swap'),
+                : Text(actionLabel),
           ),
         ),
       ),
@@ -151,14 +219,17 @@ class BookDetailPage extends StatelessWidget {
       return;
     }
 
-    final alreadyPending = swapProvider.userSwaps.any((swap) {
-      // Prevent duplicate pending requests for the same book.
-      return swap.bookId == book.id && swap.status == SwapStatus.pending;
+    final hasActiveSwap = swapProvider.userSwaps.any((swap) {
+      return swap.bookId == book.id &&
+          swap.senderUserId == currentUser.id &&
+          swap.status != SwapStatus.rejected;
     });
 
-    if (alreadyPending) {
+    if (hasActiveSwap) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You already have a pending swap for this book.')),
+        const SnackBar(
+          content: Text('You already have an active swap for this book.'),
+        ),
       );
       return;
     }
@@ -192,6 +263,49 @@ class BookDetailPage extends StatelessWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Could not create swap: $e')),
       );
+    }
+  }
+
+  Color _statusForegroundColor(SwapStatus status) {
+    switch (status) {
+      case SwapStatus.accepted:
+        return AppTheme.successColor;
+      case SwapStatus.rejected:
+        return AppTheme.errorColor;
+      case SwapStatus.completed:
+        return AppTheme.accentColor;
+      case SwapStatus.pending:
+        return AppTheme.primaryColor;
+    }
+  }
+
+  Color _statusHighlightColor(SwapStatus status) {
+    return _statusForegroundColor(status).withValues(alpha: 0.15);
+  }
+
+  IconData _statusIcon(SwapStatus status) {
+    switch (status) {
+      case SwapStatus.accepted:
+        return Icons.check_circle_outline;
+      case SwapStatus.rejected:
+        return Icons.cancel_outlined;
+      case SwapStatus.completed:
+        return Icons.task_alt;
+      case SwapStatus.pending:
+        return Icons.schedule_outlined;
+    }
+  }
+
+  String _statusMessage(SwapStatus status, {required String bookOwnerName}) {
+    switch (status) {
+      case SwapStatus.pending:
+        return 'Your swap request is pending approval from $bookOwnerName.';
+      case SwapStatus.accepted:
+        return 'Your swap request was accepted. Head to Chats to coordinate the swap.';
+      case SwapStatus.rejected:
+        return 'Your previous swap request was declined. You can send a new request whenever you are ready.';
+      case SwapStatus.completed:
+        return 'This swap has been completed. Enjoy your new book!';
     }
   }
 

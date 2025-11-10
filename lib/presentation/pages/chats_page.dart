@@ -62,12 +62,12 @@ class ChatsPage extends StatelessWidget {
             children: [
               if (userSwaps.isNotEmpty) ...[
                 Text(
-                  'Swap Requests You Sent',
+                  'My Offers',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 12),
                 ...userSwaps.map(
-                  (swap) => _SentSwapCard(swap: swap),
+                  (swap) => _MyOfferCard(swap: swap),
                 ),
                 const SizedBox(height: 24),
               ],
@@ -92,10 +92,10 @@ class ChatsPage extends StatelessWidget {
   }
 }
 
-class _SentSwapCard extends StatelessWidget {
+class _MyOfferCard extends StatelessWidget {
   final SwapModel swap;
 
-  const _SentSwapCard({required this.swap});
+  const _MyOfferCard({required this.swap});
 
   @override
   Widget build(BuildContext context) {
@@ -117,12 +117,21 @@ class _SentSwapCard extends StatelessWidget {
             style: Theme.of(context).textTheme.titleSmall,
           ),
           const SizedBox(height: 4),
-          Text(
-            'Sent to ${swap.recipientUserName}',
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: AppTheme.lightTextColor),
+          Row(
+            children: [
+              const Icon(Icons.swap_horiz, size: 16, color: AppTheme.lightTextColor),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  'Offered to ${swap.recipientUserName}',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: AppTheme.lightTextColor),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           Row(
@@ -151,6 +160,34 @@ class _SentSwapCard extends StatelessWidget {
               ),
             ],
           ),
+          if (swap.status == SwapStatus.pending)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.schedule_outlined,
+                        size: 16, color: AppTheme.primaryColor),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Waiting for the owner to respond. The listing now lives in My Offers.',
+                        style: const TextStyle(
+                          color: AppTheme.primaryColor,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -192,8 +229,8 @@ class _ChatThreadCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final otherName = _otherParticipantName();
     final lastMessage = thread.lastMessage ?? 'No messages yet';
-    final timeLabel = thread.lastMessageAt != null
-        ? _SentSwapCard._timeAgo(thread.lastMessageAt!)
+  final timeLabel = thread.lastMessageAt != null
+    ? _MyOfferCard._timeAgo(thread.lastMessageAt!)
         : 'Just now';
     final unreadCount = currentUserId != null
         ? thread.unreadCounts[currentUserId!] ?? 0
