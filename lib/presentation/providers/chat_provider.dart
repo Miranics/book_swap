@@ -1,21 +1,28 @@
 import 'package:flutter/material.dart';
+import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/chat_repository.dart';
 import '../../domain/models/chat_model.dart';
+import '../../domain/models/user_model.dart';
 
 class ChatProvider extends ChangeNotifier {
   final ChatRepository _chatRepository;
+  final AuthRepository _authRepository;
 
   List<ChatThread> _chatThreads = [];
   List<ChatMessage> _messages = [];
   bool _isLoading = false;
   String? _error;
 
-  ChatProvider(this._chatRepository);
+  final Map<String, UserModel> _userProfiles = {};
+  bool _isDisposed = false;
+
+  ChatProvider(this._chatRepository, this._authRepository);
 
   List<ChatThread> get chatThreads => _chatThreads;
   List<ChatMessage> get messages => _messages;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  Map<String, UserModel> get userProfiles => Map.unmodifiable(_userProfiles);
 
   // Listen to user's chat threads
   void listenToUserChats(String userId) {
@@ -26,6 +33,10 @@ class ChatProvider extends ChangeNotifier {
           final bTime = b.lastMessageAt ?? b.createdAt;
           return bTime.compareTo(aTime);
         });
+      for (final thread in _chatThreads) {
+        _loadUserProfile(thread.userId1);
+        _loadUserProfile(thread.userId2);
+      }
       notifyListeners();
     });
   }
@@ -34,6 +45,9 @@ class ChatProvider extends ChangeNotifier {
   void listenToMessages(String threadId) {
     _chatRepository.getMessages(threadId).listen((messages) {
       _messages = messages;
+      for (final message in messages) {
+        _loadUserProfile(message.senderId);
+      }
       notifyListeners();
     });
   }
@@ -58,6 +72,8 @@ class ChatProvider extends ChangeNotifier {
         userId2Name: userId2Name,
         swapId: swapId,
       );
+      _loadUserProfile(userId1);
+      _loadUserProfile(userId2);
       _isLoading = false;
       notifyListeners();
       return threadId;
@@ -126,5 +142,36 @@ class ChatProvider extends ChangeNotifier {
   void clearError() {
     _error = null;
     notifyListeners();
+  }
+
+  void cacheUserProfile(UserModel user) {
+    final existing = _userProfiles[user.id];
+    if (existing != null &&
+        existing.profileImageUrl == user.profileImageUrl &&
+        existing.displayName == user.displayName) {
+      return;
+    }
+    _userProfiles[user.id] = user;
+    if (!_isDisposed) {
+      notifyListeners();
+    }
+  }
+
+  void _loadUserProfile(String userId) {
+    if (userId.isEmpty || _userProfiles.containsKey(userId)) {
+      return;
+    }
+    _authRepository.getUserProfileById(userId).then((profile) {
+      if (profile != null && !_isDisposed) {
+        _userProfiles[userId] = profile;
+        notifyListeners();
+      }
+    }).catchError((_) {});
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
   }
 }

@@ -34,10 +34,15 @@ class AppTheme {
         ),
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: Colors.white,
+        backgroundColor: primaryColor,
         selectedItemColor: accentColor,
-        unselectedItemColor: lightTextColor,
+        unselectedItemColor: Colors.white.withValues(alpha: 0.65),
+        selectedIconTheme: const IconThemeData(size: 26),
+        unselectedIconTheme: const IconThemeData(size: 24),
         elevation: 8,
+        showUnselectedLabels: true,
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,

@@ -147,6 +147,18 @@ class AuthRepository {
     }
   }
 
+  Future<UserModel?> getUserProfileById(String userId) async {
+    try {
+      final doc = await _firestore.collection('users').doc(userId).get();
+      if (doc.exists) {
+        return UserModel.fromMap(doc.data()!, doc.id);
+      }
+      return null;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   Future<void> updateUserProfile({
     required String displayName,
     String? profileImageUrl,

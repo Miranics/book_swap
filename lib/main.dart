@@ -89,7 +89,10 @@ class MyApp extends StatelessWidget {
           create: (context) => SwapProvider(context.read<SwapRepository>()),
         ),
         ChangeNotifierProvider<ChatProvider>(
-          create: (context) => ChatProvider(context.read<ChatRepository>()),
+          create: (context) => ChatProvider(
+            context.read<ChatRepository>(),
+            context.read<AuthRepository>(),
+          ),
         ),
       ],
       child: MaterialApp(

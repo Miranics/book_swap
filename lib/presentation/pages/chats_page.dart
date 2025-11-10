@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../domain/models/chat_model.dart';
 import '../../domain/models/swap_model.dart';
+import '../../domain/models/user_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
 import '../providers/swap_provider.dart';
@@ -24,6 +25,10 @@ class ChatsPage extends StatelessWidget {
       body: Consumer3<ChatProvider, SwapProvider, AuthProvider>(
         builder: (context, chatProvider, swapProvider, authProvider, child) {
           final currentUserId = authProvider.currentUser?.id;
+          final currentUser = authProvider.currentUser;
+          if (currentUser != null) {
+            chatProvider.cacheUserProfile(currentUser);
+          }
           final userSwaps = swapProvider.userSwaps;
           final chatThreads = chatProvider.chatThreads;
 
@@ -81,6 +86,7 @@ class ChatsPage extends StatelessWidget {
                   (thread) => _ChatThreadCard(
                     thread: thread,
                     currentUserId: currentUserId,
+                    userProfiles: chatProvider.userProfiles,
                   ),
                 ),
               ],
@@ -222,8 +228,13 @@ class _MyOfferCard extends StatelessWidget {
 class _ChatThreadCard extends StatelessWidget {
   final ChatThread thread;
   final String? currentUserId;
+  final Map<String, UserModel> userProfiles;
 
-  const _ChatThreadCard({required this.thread, required this.currentUserId});
+  const _ChatThreadCard({
+    required this.thread,
+    required this.currentUserId,
+    required this.userProfiles,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -235,6 +246,13 @@ class _ChatThreadCard extends StatelessWidget {
     final unreadCount = currentUserId != null
         ? thread.unreadCounts[currentUserId!] ?? 0
         : 0;
+    final otherUserId = _otherParticipantId();
+    final userProfile =
+        otherUserId != null ? userProfiles[otherUserId] : null;
+    final avatarUrl = userProfile?.profileImageUrl;
+    final avatarInitial = userProfile?.displayName?.isNotEmpty == true
+        ? userProfile!.displayName![0].toUpperCase()
+        : (otherName.isNotEmpty ? otherName[0].toUpperCase() : '?');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -263,14 +281,19 @@ class _ChatThreadCard extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 28,
-                      backgroundColor: AppTheme.accentColor.withValues(alpha: 0.2),
-                      child: Text(
-                        otherName.isNotEmpty ? otherName[0].toUpperCase() : '?',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.accentColor,
-                        ),
-                      ),
+                      backgroundColor:
+                          AppTheme.accentColor.withValues(alpha: 0.2),
+                      backgroundImage:
+                          avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                      child: avatarUrl == null
+                          ? Text(
+                              avatarInitial,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.accentColor,
+                              ),
+                            )
+                          : null,
                     ),
                     if (unreadCount > 0)
                       Positioned(
@@ -362,5 +385,18 @@ class _ChatThreadCard extends StatelessWidget {
       return thread.userId1Name;
     }
     return thread.userId2Name;
+  }
+
+  String? _otherParticipantId() {
+    if (currentUserId == null) {
+      return thread.userId1;
+    }
+    if (currentUserId == thread.userId1) {
+      return thread.userId2;
+    }
+    if (currentUserId == thread.userId2) {
+      return thread.userId1;
+    }
+    return thread.userId1;
   }
 }

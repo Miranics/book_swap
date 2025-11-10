@@ -40,13 +40,21 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     final chatProvider = context.watch<ChatProvider>();
     final currentUser = context.watch<AuthProvider>().currentUser;
 
+    if (currentUser != null) {
+      chatProvider.cacheUserProfile(currentUser);
+    }
+
     final thread = chatProvider.chatThreads.firstWhere(
       (t) => t.id == widget.thread.id,
       orElse: () => widget.thread,
     );
 
-    final messages = chatProvider.messages;
-    final otherUserName = _otherParticipantName(thread, currentUser?.id);
+  final messages = chatProvider.messages;
+  final otherUserName = _otherParticipantName(thread, currentUser?.id);
+  final otherUserId = currentUser?.id == thread.userId1
+    ? thread.userId2
+    : thread.userId1;
+  final otherUserProfile = chatProvider.userProfiles[otherUserId];
 
     final unreadCount = currentUser != null
         ? thread.unreadCounts[currentUser.id] ?? 0
@@ -73,7 +81,21 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(otherUserName),
+        title: Row(
+          children: [
+            _MessageAvatar(
+              imageUrl: otherUserProfile?.profileImageUrl,
+              fallbackLabel: otherUserName,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                otherUserName,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
         backgroundColor: AppTheme.primaryColor,
         foregroundColor: Colors.white,
       ),
@@ -84,52 +106,106 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                 ? _EmptyChatState(otherUserName: otherUserName)
                 : ListView.builder(
                     controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
                       final message = messages[index];
                       final isMine = message.senderId == currentUser?.id;
-                      return Align(
-                        alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(vertical: 4),
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: isMine
-                                ? AppTheme.accentColor.withValues(alpha: 0.9)
-                                : Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: isMine
-                                ? CrossAxisAlignment.end
-                                : CrossAxisAlignment.start,
-                            children: [
-                              if (!isMine)
-                                Text(
-                                  message.senderName,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .labelSmall
-                                      ?.copyWith(color: AppTheme.primaryColor),
-                                ),
-                              if (!isMine) const SizedBox(height: 2),
-                              Text(
-                                message.message,
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                      color: isMine ? AppTheme.primaryColor : AppTheme.textColor,
-                                    ),
+                      final senderProfile =
+                          chatProvider.userProfiles[message.senderId];
+                      final avatarUrl = isMine
+                          ? currentUser?.profileImageUrl
+                          : senderProfile?.profileImageUrl ??
+                              otherUserProfile?.profileImageUrl;
+                      final displayName = isMine
+                          ? (currentUser?.displayName?.isNotEmpty == true
+                              ? currentUser!.displayName!
+                              : currentUser?.email ?? 'You')
+                          : message.senderName;
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisAlignment: isMine
+                              ? MainAxisAlignment.end
+                              : MainAxisAlignment.start,
+                          children: [
+                            if (!isMine) ...[
+                              _MessageAvatar(
+                                imageUrl: avatarUrl,
+                                fallbackLabel: displayName,
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _formatTimestamp(message.timestamp),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelSmall
-                                    ?.copyWith(color: AppTheme.lightTextColor),
+                              const SizedBox(width: 8),
+                            ],
+                            Flexible(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: isMine
+                                      ? AppTheme.accentColor.withValues(alpha: 0.9)
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: const Radius.circular(18),
+                                    topRight: const Radius.circular(18),
+                                    bottomLeft: Radius.circular(isMine ? 18 : 4),
+                                    bottomRight: Radius.circular(isMine ? 4 : 18),
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.04),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: isMine
+                                      ? CrossAxisAlignment.end
+                                      : CrossAxisAlignment.start,
+                                  children: [
+                                    if (!isMine)
+                                      Text(
+                                        message.senderName,
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall
+                                            ?.copyWith(color: AppTheme.primaryColor),
+                                      ),
+                                    if (!isMine) const SizedBox(height: 2),
+                                    Text(
+                                      message.message,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            color: isMine
+                                                ? AppTheme.primaryColor
+                                                : AppTheme.textColor,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _formatTimestamp(message.timestamp),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(color: AppTheme.lightTextColor),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            if (isMine) ...[
+                              const SizedBox(width: 8),
+                              _MessageAvatar(
+                                imageUrl: avatarUrl,
+                                fallbackLabel: displayName,
+                                accentBackground: true,
                               ),
                             ],
-                          ),
+                          ],
                         ),
                       );
                     },
@@ -206,6 +282,47 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
       return '${difference.inHours} hr ago';
     }
     return '${timestamp.year}/${timestamp.month.toString().padLeft(2, '0')}/${timestamp.day.toString().padLeft(2, '0')}';
+  }
+}
+
+class _MessageAvatar extends StatelessWidget {
+  final String? imageUrl;
+  final String fallbackLabel;
+  final bool accentBackground;
+
+  const _MessageAvatar({
+    required this.imageUrl,
+    required this.fallbackLabel,
+    this.accentBackground = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+  final String trimmed = fallbackLabel.trim();
+  final String initial = trimmed.isNotEmpty
+    ? trimmed[0].toUpperCase()
+    : '?';
+
+    return CircleAvatar(
+      radius: 18,
+      backgroundColor: accentBackground
+          ? AppTheme.accentColor
+          : AppTheme.primaryColor.withValues(alpha: 0.15),
+      backgroundImage: imageUrl != null && imageUrl!.isNotEmpty
+          ? NetworkImage(imageUrl!)
+          : null,
+      child: imageUrl == null || imageUrl!.isEmpty
+          ? Text(
+              initial,
+              style: TextStyle(
+                color: accentBackground
+                    ? AppTheme.primaryColor
+                    : AppTheme.primaryColor,
+                fontWeight: FontWeight.bold,
+              ),
+            )
+          : null,
+    );
   }
 }
 
