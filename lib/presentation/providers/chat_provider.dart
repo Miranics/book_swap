@@ -169,6 +169,27 @@ class ChatProvider extends ChangeNotifier {
     }).catchError((_) {});
   }
 
+  Future<void> refreshUserProfile(String userId) async {
+    if (userId.isEmpty) {
+      return;
+    }
+    try {
+      final profile = await _authRepository.getUserProfileById(userId);
+      if (profile != null && !_isDisposed) {
+        final existing = _userProfiles[userId];
+        final hasChanged = existing == null ||
+            existing.profileImageUrl != profile.profileImageUrl ||
+            existing.displayName != profile.displayName;
+        if (hasChanged) {
+          _userProfiles[userId] = profile;
+          notifyListeners();
+        }
+      }
+    } catch (_) {
+      // Ignore fetch errors for now.
+    }
+  }
+
   @override
   void dispose() {
     _isDisposed = true;

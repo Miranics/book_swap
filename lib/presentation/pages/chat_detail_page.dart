@@ -24,7 +24,13 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ChatProvider>().listenToMessages(widget.thread.id);
+      final chatProvider = context.read<ChatProvider>();
+      chatProvider.listenToMessages(widget.thread.id);
+      final currentUser = context.read<AuthProvider>().currentUser;
+      final otherUserId = currentUser?.id == widget.thread.userId1
+          ? widget.thread.userId2
+          : widget.thread.userId1;
+      chatProvider.refreshUserProfile(otherUserId);
     });
   }
 
