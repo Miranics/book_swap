@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../providers/book_provider.dart';
+import 'book_detail_page.dart';
 
 class BrowsePage extends StatefulWidget {
   const BrowsePage({super.key});
@@ -81,7 +82,11 @@ class _BrowsePageState extends State<BrowsePage> {
                   child: Material(
                     child: InkWell(
                       onTap: () {
-                        // TODO: Navigate to book details
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => BookDetailPage(book: book),
+                          ),
+                        );
                       },
                       child: Padding(
                         padding: const EdgeInsets.all(12),
