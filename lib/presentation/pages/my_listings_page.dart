@@ -92,7 +92,7 @@ class MyListingsPage extends StatelessWidget {
                       : Container(
                           width: 50,
                           height: 75,
-                          color: AppTheme.secondaryColor.withOpacity(0.2),
+                           color: AppTheme.secondaryColor.withValues(alpha: 0.2),
                           child: const Icon(Icons.menu_book),
                         ),
                   title: Text(book.title),
