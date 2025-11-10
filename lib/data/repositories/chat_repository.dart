@@ -1,8 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../../domain/models/chat_model.dart';
 
 class ChatRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  String _createThreadKey(String userId1, String userId2) {
+    final participants = [userId1, userId2]..sort();
+    return participants.join('_');
+  }
 
   // Create or get chat thread
   Future<String> getOrCreateChatThread({
@@ -13,11 +19,12 @@ class ChatRepository {
     String? swapId,
   }) async {
     try {
+      final threadKey = _createThreadKey(userId1, userId2);
+
       // Try to find existing chat thread
       final querySnapshot = await _firestore
           .collection('chatThreads')
-          .where('userId1', isEqualTo: userId1)
-          .where('userId2', isEqualTo: userId2)
+          .where('threadKey', isEqualTo: threadKey)
           .limit(1)
           .get();
 
@@ -25,15 +32,21 @@ class ChatRepository {
         return querySnapshot.docs.first.id;
       }
 
-      // Create new chat thread if doesn't exist
+      final now = DateTime.now();
+
+      // Create new chat thread if it doesn't exist
       final chatThread = ChatThread(
         id: '', // Will be set by Firestore
         userId1: userId1,
         userId1Name: userId1Name,
         userId2: userId2,
         userId2Name: userId2Name,
+        threadKey: threadKey,
+        participants: [userId1, userId2],
         swapId: swapId,
-        createdAt: DateTime.now(),
+        createdAt: now,
+        lastMessage: 'Chat started',
+        lastMessageAt: now,
       );
 
       final docRef = await _firestore
@@ -88,8 +101,7 @@ class ChatRepository {
   Stream<List<ChatThread>> getUserChatThreads(String userId) {
     return _firestore
         .collection('chatThreads')
-        .where('userId1', isEqualTo: userId)
-        .orderBy('lastMessageAt', descending: true)
+        .where('participants', arrayContains: userId)
         .snapshots()
         .map((snapshot) {
       return snapshot.docs

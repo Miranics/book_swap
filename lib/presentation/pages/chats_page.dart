@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../core/theme.dart';
+import '../../domain/models/chat_model.dart';
+import '../../domain/models/swap_model.dart';
+import '../providers/auth_provider.dart';
 import '../providers/chat_provider.dart';
+import '../providers/swap_provider.dart';
+import 'chat_detail_page.dart';
 
 class ChatsPage extends StatelessWidget {
   const ChatsPage({super.key});
@@ -15,110 +21,270 @@ class ChatsPage extends StatelessWidget {
         backgroundColor: AppTheme.primaryColor,
         foregroundColor: Colors.white,
       ),
-      body: Consumer<ChatProvider>(
-        builder: (context, chatProvider, child) {
-          if (chatProvider.chatThreads.isEmpty) {
+      body: Consumer3<ChatProvider, SwapProvider, AuthProvider>(
+        builder: (context, chatProvider, swapProvider, authProvider, child) {
+          final currentUserId = authProvider.currentUser?.id;
+          final userSwaps = swapProvider.userSwaps;
+          final chatThreads = chatProvider.chatThreads;
+
+          if (userSwaps.isEmpty && chatThreads.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    Icons.chat_bubble,
+                    Icons.chat_bubble_outline,
                     size: 64,
                     color: AppTheme.lightTextColor,
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'No active chats',
+                    'No swaps or chats yet',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppTheme.lightTextColor,
-                    ),
+                          color: AppTheme.lightTextColor,
+                        ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Start a swap to begin chatting',
+                    'Send a swap request or accept one to start a conversation.',
+                    textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppTheme.lightTextColor,
-                    ),
+                          color: AppTheme.lightTextColor,
+                        ),
                   ),
                 ],
               ),
             );
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            itemCount: chatProvider.chatThreads.length,
-            itemBuilder: (context, index) {
-              final thread = chatProvider.chatThreads[index];
-              final lastMessage = thread.lastMessage ?? 'No messages yet';
-              
-              return Container(
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.grey.shade200,
-                    width: 1,
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              if (userSwaps.isNotEmpty) ...[
+                Text(
+                  'Swap Requests You Sent',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 12),
+                ...userSwaps.map(
+                  (swap) => _SentSwapCard(swap: swap),
+                ),
+                const SizedBox(height: 24),
+              ],
+              if (chatThreads.isNotEmpty) ...[
+                Text(
+                  'Chats',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 12),
+                ...chatThreads.map(
+                  (thread) => _ChatThreadCard(
+                    thread: thread,
+                    currentUserId: currentUserId,
                   ),
                 ),
-                child: Material(
-                  child: InkWell(
-                    onTap: () {
-                      // TODO: Navigate to chat detail page
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
-                        children: [
-                          // Avatar
-                          CircleAvatar(
-                            radius: 28,
-                            backgroundColor: AppTheme.accentColor.withValues(alpha: 0.2),
-                            child: Text(
-                              thread.userId2Name[0].toUpperCase(),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.accentColor,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          // Chat Info
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  thread.userId2Name,
-                                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  lastMessage,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppTheme.lightTextColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
+              ],
+            ],
           );
         },
       ),
     );
+  }
+}
+
+class _SentSwapCard extends StatelessWidget {
+  final SwapModel swap;
+
+  const _SentSwapCard({required this.swap});
+
+  @override
+  Widget build(BuildContext context) {
+    final statusColor = _statusColor(swap.status);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            swap.bookTitle,
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Sent to ${swap.recipientUserName}',
+            style: Theme.of(context)
+                .textTheme
+                .bodySmall
+                ?.copyWith(color: AppTheme.lightTextColor),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  swap.status.displayName,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                _timeAgo(swap.createdAt),
+                style: Theme.of(context)
+                    .textTheme
+                    .labelSmall
+                    ?.copyWith(color: AppTheme.lightTextColor),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _statusColor(SwapStatus status) {
+    switch (status) {
+      case SwapStatus.accepted:
+        return AppTheme.successColor;
+      case SwapStatus.rejected:
+        return AppTheme.errorColor;
+      case SwapStatus.completed:
+        return AppTheme.accentColor;
+      case SwapStatus.pending:
+        return AppTheme.primaryColor;
+    }
+  }
+
+  static String _timeAgo(DateTime createdAt) {
+    final difference = DateTime.now().difference(createdAt);
+    if (difference.inDays >= 1) {
+      return '${difference.inDays} day${difference.inDays == 1 ? '' : 's'} ago';
+    }
+    if (difference.inHours >= 1) {
+      return '${difference.inHours} hour${difference.inHours == 1 ? '' : 's'} ago';
+    }
+    final minutes = difference.inMinutes.clamp(1, 59);
+    return '$minutes minute${minutes == 1 ? '' : 's'} ago';
+  }
+}
+
+class _ChatThreadCard extends StatelessWidget {
+  final ChatThread thread;
+  final String? currentUserId;
+
+  const _ChatThreadCard({required this.thread, required this.currentUserId});
+
+  @override
+  Widget build(BuildContext context) {
+    final otherName = _otherParticipantName();
+    final lastMessage = thread.lastMessage ?? 'No messages yet';
+    final timeLabel = thread.lastMessageAt != null
+        ? _SentSwapCard._timeAgo(thread.lastMessageAt!)
+        : 'Just now';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ChatDetailPage(thread: thread),
+              ),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: AppTheme.accentColor.withValues(alpha: 0.2),
+                  child: Text(
+                    otherName.isNotEmpty ? otherName[0].toUpperCase() : '?',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.accentColor,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              otherName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            timeLabel,
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(color: AppTheme.lightTextColor),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        lastMessage,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: AppTheme.lightTextColor),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _otherParticipantName() {
+    if (currentUserId == thread.userId1) {
+      return thread.userId2Name;
+    }
+    if (currentUserId == thread.userId2) {
+      return thread.userId1Name;
+    }
+    return thread.userId2Name;
   }
 }

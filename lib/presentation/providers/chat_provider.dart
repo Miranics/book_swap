@@ -20,7 +20,12 @@ class ChatProvider extends ChangeNotifier {
   // Listen to user's chat threads
   void listenToUserChats(String userId) {
     _chatRepository.getUserChatThreads(userId).listen((threads) {
-      _chatThreads = threads;
+      _chatThreads = List.of(threads)
+        ..sort((a, b) {
+          final aTime = a.lastMessageAt ?? a.createdAt;
+          final bTime = b.lastMessageAt ?? b.createdAt;
+          return bTime.compareTo(aTime);
+        });
       notifyListeners();
     });
   }

@@ -3,7 +3,7 @@ import '../../domain/models/chat_model.dart';
 /// Mock Chat Repository for web demo
 class MockChatRepository {
   static final MockChatRepository _instance = MockChatRepository._internal();
-  
+
   factory MockChatRepository() {
     return _instance;
   }
@@ -14,9 +14,7 @@ class MockChatRepository {
   final Map<String, List<ChatMessage>> _messages = {};
 
   Stream<List<ChatThread>> getUserChatThreads(String userId) async* {
-    yield _threads
-        .where((t) => t.userId1 == userId || t.userId2 == userId)
-        .toList();
+    yield _threads.where((t) => t.participants.contains(userId)).toList();
   }
 
   Stream<List<ChatMessage>> getMessages(String threadId) async* {
@@ -31,27 +29,32 @@ class MockChatRepository {
     String? swapId,
   }) async {
     await Future.delayed(const Duration(milliseconds: 400));
-    
+
+    final participants = [userId1, userId2]..sort();
+    final threadKey = participants.join('_');
+
     // Check if thread already exists
     for (final t in _threads) {
-      if ((t.userId1 == userId1 && t.userId2 == userId2) ||
-          (t.userId1 == userId2 && t.userId2 == userId1)) {
+      if (t.threadKey == threadKey) {
         return t.id;
       }
     }
 
     // Create new thread
     final threadId = 'thread_${DateTime.now().millisecondsSinceEpoch}';
+    final now = DateTime.now();
     final thread = ChatThread(
       id: threadId,
       userId1: userId1,
       userId1Name: userId1Name,
       userId2: userId2,
       userId2Name: userId2Name,
+      threadKey: threadKey,
+      participants: [userId1, userId2],
       swapId: swapId,
-      createdAt: DateTime.now(),
+      createdAt: now,
       lastMessage: 'Chat started',
-      lastMessageAt: DateTime.now(),
+      lastMessageAt: now,
     );
 
     _threads.add(thread);
@@ -64,7 +67,7 @@ class MockChatRepository {
     required ChatMessage message,
   }) async {
     await Future.delayed(const Duration(milliseconds: 300));
-    
+
     if (!_messages.containsKey(threadId)) {
       _messages[threadId] = [];
     }
@@ -91,6 +94,8 @@ class MockChatRepository {
         userId1Name: oldThread.userId1Name,
         userId2: oldThread.userId2,
         userId2Name: oldThread.userId2Name,
+        threadKey: oldThread.threadKey,
+        participants: oldThread.participants,
         swapId: oldThread.swapId,
         createdAt: oldThread.createdAt,
         lastMessage: message.message,

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../../domain/models/swap_model.dart';
 
 class SwapRepository {
@@ -19,7 +20,6 @@ class SwapRepository {
     return _firestore
         .collection('swaps')
         .where('senderUserId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
       return snapshot.docs
@@ -33,7 +33,6 @@ class SwapRepository {
     return _firestore
         .collection('swaps')
         .where('recipientUserId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
       return snapshot.docs
@@ -69,10 +68,10 @@ class SwapRepository {
   }
 
   // Update swap status
-  Future<void> updateSwapStatus(String swapId, String status) async {
+  Future<void> updateSwapStatus(String swapId, SwapStatus status) async {
     try {
       await _firestore.collection('swaps').doc(swapId).update({
-        'status': status,
+        'status': status.toFirestoreString(),
         'updatedAt': DateTime.now().toIso8601String(),
       });
     } catch (e) {

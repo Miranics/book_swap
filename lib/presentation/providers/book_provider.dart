@@ -34,7 +34,8 @@ class BookProvider extends ChangeNotifier {
   // Listen to user's books
   void listenToUserBooks(String userId) {
     _bookRepository.getUserBooks(userId).listen((books) {
-      _userBooks = books;
+      _userBooks = List.of(books)
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
       notifyListeners();
     });
   }

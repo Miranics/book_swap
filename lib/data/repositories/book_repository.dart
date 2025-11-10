@@ -32,7 +32,6 @@ class BookRepository {
     return _firestore
         .collection('books')
         .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
       return snapshot.docs

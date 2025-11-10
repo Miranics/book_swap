@@ -20,7 +20,8 @@ class SwapProvider extends ChangeNotifier {
   // Listen to user's swaps (as sender)
   void listenToUserSwaps(String userId) {
     _swapRepository.getUserSwaps(userId).listen((swaps) {
-      _userSwaps = swaps;
+      _userSwaps = List.of(swaps)
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
       notifyListeners();
     });
   }
@@ -28,7 +29,8 @@ class SwapProvider extends ChangeNotifier {
   // Listen to received swaps (as recipient)
   void listenToReceivedSwaps(String userId) {
     _swapRepository.getReceivedSwaps(userId).listen((swaps) {
-      _receivedSwaps = swaps;
+      _receivedSwaps = List.of(swaps)
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
       notifyListeners();
     });
   }
@@ -53,13 +55,13 @@ class SwapProvider extends ChangeNotifier {
   }
 
   // Update swap status
-  Future<void> updateSwapStatus(String swapId, String status) async {
+  Future<void> updateSwapStatus(String swapId, SwapStatus status) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      await _swapRepository.updateSwapStatus(swapId, status);
+  await _swapRepository.updateSwapStatus(swapId, status);
       _isLoading = false;
       notifyListeners();
     } catch (e) {
