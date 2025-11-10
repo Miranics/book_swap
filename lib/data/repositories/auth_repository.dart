@@ -61,10 +61,16 @@ class AuthRepository {
       }
 
       // Get user profile from Firestore
-      final userDoc = await _firestore.collection('users').doc(user.uid).get();
-      
+      final userDocRef = _firestore.collection('users').doc(user.uid);
+      final userDoc = await userDocRef.get();
+
       if (userDoc.exists) {
-        return UserModel.fromMap(userDoc.data()!, user.uid);
+        final data = userDoc.data()!;
+        if ((data['emailVerified'] as bool? ?? false) != user.emailVerified) {
+          await userDocRef.update({'emailVerified': user.emailVerified});
+          data['emailVerified'] = user.emailVerified;
+        }
+        return UserModel.fromMap(data, user.uid);
       } else {
         // Create profile if it doesn't exist
         final userModel = UserModel(
@@ -74,11 +80,9 @@ class AuthRepository {
           emailVerified: user.emailVerified,
           createdAt: DateTime.now(),
         );
-        
-        await _firestore.collection('users').doc(user.uid).set(
-              userModel.toMap(),
-            );
-        
+
+        await userDocRef.set(userModel.toMap());
+
         return userModel;
       }
     } catch (e) {
@@ -125,9 +129,16 @@ class AuthRepository {
     try {
       final user = _firebaseAuth.currentUser;
       if (user != null) {
-        final userDoc = await _firestore.collection('users').doc(user.uid).get();
+        await user.reload();
+        final userDocRef = _firestore.collection('users').doc(user.uid);
+        final userDoc = await userDocRef.get();
         if (userDoc.exists) {
-          return UserModel.fromMap(userDoc.data()!, user.uid);
+          final data = userDoc.data()!;
+          if ((data['emailVerified'] as bool? ?? false) != user.emailVerified) {
+            await userDocRef.update({'emailVerified': user.emailVerified});
+            data['emailVerified'] = user.emailVerified;
+          }
+          return UserModel.fromMap(data, user.uid);
         }
       }
       return null;
