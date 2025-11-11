@@ -113,18 +113,7 @@ flutter analyze
 
 ---
 
-## Deliverables Guide (assignment support)
 
-1. **Reflection PDF:** Describe Firebase setup hurdles (include screenshots of dependency mismatch and missing index errors) and the fixes applied.
-2. **Analyzer Screenshot:** Run `flutter analyze`, resolve issues, and capture the clean output.
-3. **Design Summary PDF:** Reference the ERD, swap state timeline, Provider flow, and trade-offs (denormalized swap snapshots, listener vs. fetch, index maintenance).
-4. **Demo Video (7–12 min):**
-   - Keep app and Firebase console visible side-by-side.
-   - Show auth signup → verification → login, book CRUD, swap offer and acceptance, navigation tabs, settings toggles, and chat if implemented.
-   - Narrate why each step matters (state management, Firestore triggers).
-5. **Repository hygiene:** incremental commits with descriptive messages, secrets excluded via `.gitignore`, and README kept current (this file).
-
----
 
 ## Notable Packages
 
