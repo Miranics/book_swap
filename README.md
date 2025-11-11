@@ -141,12 +141,4 @@ Run `flutter pub outdated` to inspect upgrade paths (many Firebase packages alre
 
 ---
 
-## Contribution & License
-
-Pull requests and issues are welcome. Please open an issue describing the change before submitting large PRs to keep the roadmap aligned.
-
-This project is released under the MIT License. See `LICENSE` for details.
-
----
-
 Happy swapping! 🎓📚
