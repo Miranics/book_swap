@@ -1,160 +1,163 @@
-# BookSwap - Flutter Mobile App
+git clone https://github.com/Miranics/book_swap.git
+# BookSwap – Flutter + Firebase
 
-A marketplace application where students can list textbooks they wish to exchange and initiate swap offers with other users. Built with Flutter, Firebase, and Provider state management.
+BookSwap is a mobile marketplace where students list textbooks, propose swaps, and monitor each trade in real time. The project combines a Flutter front end, Firebase Authentication, and Cloud Firestore with Provider-based state management.
 
-## Project Overview
+---
 
-BookSwap enables students to:
-- **Authenticate** with email/password and email verification
-- **Post books** with title, author, condition, and cover image
-- **Browse** listings from other students
-- **Initiate swaps** and track swap status
-- **Chat** with other users after swap initiation
-- **Manage profile** and notification preferences
+## Quick Feature Tour
 
-## Architecture
+- **Authentication:** Email/password signup, verification gate, login, logout, and profile snapshots.
+- **Listings CRUD:** Create, browse, edit, and delete book cards with cover images, condition, and tags.
+- **Swap Workflow:** Offer swaps, watch state changes (pending → accepted → delivered → completed/cancelled), and sync both parties instantly.
+- **Chat (bonus):** Post-offer conversations stored in Firestore subcollections.
+- **Settings:** Profile info, notification toggles, verification badges, and logout.
 
-### Clean Architecture Pattern
+---
 
-The project follows clean architecture with clear separation of concerns:
+## Clean Architecture Layout
 
 ```
 lib/
-├── core/                          # Core configurations
-│   └── theme.dart                # App theming (Dark Navy + Golden Yellow)
-├── data/                          # Data layer
-│   ├── models/                   # Firestore models
-│   └── repositories/             # Repository implementations
-├── domain/                        # Domain layer
-│   └── models/                   # Business models
-├── presentation/                  # Presentation layer
-│   ├── pages/                    # Screen widgets
-│   │   ├── auth/                 # Authentication screens
-│   │   └── *.dart                # Feature screens
-│   ├── providers/                # State management (Provider)
-│   └── widgets/                  # Reusable widgets
-└── main.dart                      # App entry point
+├── core/                  Shared utilities (theme, constants)
+├── data/                  Firebase data sources + repositories
+│   ├── models/            DTOs mapped from Firestore documents
+│   └── repositories/      Firebase implementations
+├── domain/                Pure models and use cases
+├── presentation/          UI layer
+│   ├── pages/             Screens grouped by feature
+│   ├── providers/         ChangeNotifier classes (Provider)
+│   └── widgets/           Reusable UI components
+└── main.dart              Entry point + MultiProvider wiring
 ```
 
-### State Management: Provider
+### State Management Snapshot
 
-The app uses **Provider** for reactive state management:
+`Widget` ▶ subscribes to ▶ `ChangeNotifier` ▶ calls ▶ `Repository` ▶ reads/writes ▶ Firebase ▶ streams back ▶ `ChangeNotifier` ▶ notifies ▶ `Widget`
 
-- **AuthProvider**: Manages authentication state and user profile
-- **BookProvider**: Handles CRUD operations for book listings
-- **SwapProvider**: Manages swap offers and state transitions  
-- **ChatProvider**: Handles real-time chat functionality
+- `AuthProvider`: login, signup, verification, current user cache.
+- `BookProvider`: listing CRUD and live query streams.
+- `SwapProvider`: swap creation, timeline updates, status transitions.
+- `ChatProvider`: message thread listeners per swap.
 
-#### State Management Flow:
-```
-UI Layer (Widgets)
-    ↓ listens to
-Provider (ChangeNotifier)
-    ↓ calls methods on
-Repository
-    ↓ performs operations on
-Firebase (Firestore + Auth)
-    ↓ streams data back to
-Provider → UI
-```
+Zero shared mutable state lives outside Provider; any `setState` usage is limited to local UI toggles.
 
-## Features Implemented
+---
 
-### 1. Authentication (✅ Complete)
-- Email/Password signup with Firebase Auth
-- Email verification enforcement - users cannot login until verified
-- Login with email verification check
-- Logout functionality
-- User profile creation
+## Firestore Schema Overview
 
-### 2. Book Listings CRUD (✅ Complete)
-- **Create**: Post books with title, author, condition
-- **Read**: Browse all listings in shared feed
-- **Update**: Edit your own book listings
-- **Delete**: Remove book listings
+| Collection | Key fields | Purpose |
+|------------|------------|---------|
+| `users` | `displayName`, `email`, `photoUrl`, `completedSwaps`, `rating` | Profile cards + quick stats |
+| `books` | `ownerUid`, `title`, `author`, `condition`, `coverUrl`, `tags`, `isAvailable` | Public listing feed |
+| `swaps` | `requesterUid`, `ownerUid`, `bookId`, `state`, timeline array, timestamp fields | Swap lifecycle storage |
+| `chatThreads` | `swapId`, `participants[]`, messages subcollection | Conversation per accepted swap |
+| `notifications` | `userUid`, `type`, payload, `isRead` | In-app alerts (optional) |
+| `wishlists` | `userUid`, `bookRefs[]` | Save-for-later support (optional) |
 
-### 3. Navigation (✅ Complete)
-**BottomNavigationBar** with 4 main screens:
-1. Browse - View all listings
-2. My Listings - Your posted books
-3. Chats - Messaging (Bonus)
-4. Settings - Profile & preferences
+### Swap States
 
-### 4. Settings Screen (✅ Complete)
-- Display user profile information
-- Email verification status
-- Notification preference toggles
-- Logout functionality
+`requested → accepted → in_transit → delivered → completed` with `cancelled` exit. Each transition appends `{state, actorUid, timestamp}` to `timeline[]` for audits and powers the UI status chips.
 
-### 5. Swap Functionality (🔄 In Progress)
-- Initiate swap offers
-- Track pending/accepted/rejected states
-- Real-time sync via Firestore
+### ERD
 
-### 6. Chat System (🔄 Bonus)
-- Create chat threads between users
-- Real-time messaging
-- Firestore persistence
+Check `docs/erd/bookswap_erd.png` (or generate from the Mermaid spec in `docs/erd/bookswap_erd.mmd`). The diagram matches the schema above and is embedded in the design PDF.
 
-## Database Schema (Firestore)
+---
 
-### Collections Structure
+## Firebase Setup Checklist
 
-**users/** - User profiles
-**books/** - Book listings  
-**swaps/** - Swap transactions
-**chatThreads/** - Chat conversations with messages subcollection
+1. Create a Firebase project and enable **Authentication (Email/Password)** and **Cloud Firestore** (production mode, same region as your Android/iOS builds).
+2. Download config files:
+   - `android/app/google-services.json`
+   - `ios/Runner/GoogleService-Info.plist`
+   - `lib/firebase_options.dart` (via `flutterfire configure`)
+3. Add web configuration to `web/index.html` if running in browser.
+4. Update `.env` with storage buckets or API URLs if required (`cp .env.example .env`).
+5. Apply Firestore security rules from `firebase/firestore.rules` and deploy (`firebase deploy --only firestore:rules`).
+6. Pre-create composite indexes flagged during development. When Firestore raises a `failed-precondition`, follow the provided console link or run `firebase firestore:indexes:deploy` with `firebase/firestore.indexes.json`.
 
-## Setup Instructions
+---
 
-### Prerequisites
-- Flutter 3.0+
-- Dart SDK
-- Firebase project
-- Android/iOS dev environment
-
-### Installation
+## Local Development
 
 ```bash
-# Clone repository
 git clone https://github.com/Miranics/book_swap.git
 cd book_swap
 
-# Install dependencies
+# Install Flutter packages
 flutter pub get
 
-# Run the app
-flutter run
+# Generate any json_serializable files if added later
+flutter pub run build_runner build --delete-conflicting-outputs
+
+# Clean build folders when switching devices
+flutter clean
+
+# Run on Android (avoid directories with spaces on Windows)
+flutter run -d <deviceId>
+
+# Run analyzer (capture screenshot for submission)
+flutter analyze
 ```
 
-## Key Dependencies
+> **Windows tip:** Android builds fail if the project path contains spaces (e.g., `C:\Users\ALU MCF`). Move or clone the repo to a folder such as `C:\dev\book_swap` before running on a device.
+
+---
+
+## Testing & Quality
+
+- **Analyzer:** `flutter analyze` should pass. Capture the terminal output for the assignment PDF.
+- **Formatting:** `flutter format lib test` keeps the codebase consistent.
+- **Smoke tests:** `flutter run -d chrome` is useful for quick UI checks, but the graded demo must run on an emulator or physical device.
+
+---
+
+## Deliverables Guide (assignment support)
+
+1. **Reflection PDF:** Describe Firebase setup hurdles (include screenshots of dependency mismatch and missing index errors) and the fixes applied.
+2. **Analyzer Screenshot:** Run `flutter analyze`, resolve issues, and capture the clean output.
+3. **Design Summary PDF:** Reference the ERD, swap state timeline, Provider flow, and trade-offs (denormalized swap snapshots, listener vs. fetch, index maintenance).
+4. **Demo Video (7–12 min):**
+   - Keep app and Firebase console visible side-by-side.
+   - Show auth signup → verification → login, book CRUD, swap offer and acceptance, navigation tabs, settings toggles, and chat if implemented.
+   - Narrate why each step matters (state management, Firestore triggers).
+5. **Repository hygiene:** incremental commits with descriptive messages, secrets excluded via `.gitignore`, and README kept current (this file).
+
+---
+
+## Notable Packages
 
 ```yaml
 firebase_core: ^2.32.0
 firebase_auth: ^4.16.0
 cloud_firestore: ^4.17.5
+firebase_storage: ^11.7.7
 provider: ^6.0.0
 image_picker: ^1.0.4
-firebase_storage: ^11.6.5
-```
+flutter_dotenv: ^5.2.1
+intl: ^0.19.0
+``` 
 
-## Project Status
+Run `flutter pub outdated` to inspect upgrade paths (many Firebase packages already have 6.x versions; bumping requires null-safety checks and is left for future work).
 
-✅ Clean Architecture Setup  
-✅ State Management (Provider)  
-✅ Authentication  
-✅ Navigation  
-⚙️ CRUD Operations  
-⚙️ Swap Functionality  
-⚙️ Chat System
+---
 
-## Getting Started
+## Troubleshooting Notes
 
-More info on Flutter:
+- **Path errors on Windows:** If Gradle complains about `Failed to create parent directory 'C:\Users\ALU\ MCF...'`, move the project to a space-free path.
+- **Firestore missing index:** Follow the console link produced in the error or paste the definition into `firebase/firestore.indexes.json` and deploy.
+- **Email verification:** Firebase does not automatically block unverified users; `AuthProvider` checks `user.emailVerified` and prevents navigation until the flag flips.
+- **Deleted Firestore database:** Recreate the default database in the Firebase console, reapply rules/indexes, and seed baseline data via the app or scripted imports.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+---
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Contribution & License
+
+Pull requests and issues are welcome. Please open an issue describing the change before submitting large PRs to keep the roadmap aligned.
+
+This project is released under the MIT License. See `LICENSE` for details.
+
+---
+
+Happy swapping! 🎓📚
